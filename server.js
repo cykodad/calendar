@@ -5,13 +5,41 @@ const app = express();
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const serialize = require("serialize-javascript");
+
+const moment = require("moment-timezone");
+const reload = require('reload');
+moment.tz.setDefault("UTC");
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+let events = [];
+let renderer;
+
 app.get('/', (req, res) => {
   let template = fs.readFileSync(path.resolve('./index.html'), 'utf-8');
-  res.send(template);
+  let contentMarker = "<!--APP-->";
+  if(renderer) {
+    renderer.renderToString({events}, (err, html) => {
+      if (err) {
+        console.log(err);
+      } else {
+        res.send(template.replace(contentMarker, `<script>var __INITIAL_STATE__ = ${serialize(events)}</script>\n${html}`));
+      }
+    });
+  } else {
+    res.send("<p>Awaiting compilation..</p><script src='/reload/reload.js'></script>")
+  }
+});
 
+app.use(require("body-parser").json());
+
+app.post("/add_event", (req, res) => {
+  events.push({
+    description: req.body.description,
+    date: moment(req.body.date)
+  });
+  res.sendStatus(200);
 });
 
 const server = http.createServer(app);
@@ -20,6 +48,13 @@ if (process.env.NODE_ENV === 'development') {
   const reload = require('reload');
   const reloadServer = reload(server, app);
   require('./webpack-dev-middleware').init(app);
+  require("./webpack-server-compiler").init(function(bundle) {
+    let needsReload = !renderer;
+    renderer = require("vue-server-renderer").createBundleRenderer(bundle);
+    if(needsReload) {
+      reloadServer.reload();
+    }
+  });
 }
 
 server.listen(process.env.PORT, function () {

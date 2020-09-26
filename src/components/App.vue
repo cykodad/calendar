@@ -2,6 +2,7 @@
     <div>
         <div id="header">
             <div>
+                <img src="../assets/logo.png">
                 <h1>Vue.js Calendar</h1>
             </div>
             <div>
@@ -22,12 +23,14 @@
                 <calendar-day v-for="day in week" :key="day.id" :day="day"></calendar-day>
             </div>
         </div>
+        <event-form></event-form>
     </div>
 </template>
 
 <script>
 import CalendarDay from "./CalendarDay.vue";
 import CurrentMonth from "./CurrentMonth.vue";
+import EventForm from "./EventForm.vue";
 
 export default {
     computed: {
@@ -83,7 +86,8 @@ export default {
     },
     components: {
         CalendarDay,
-        CurrentMonth
+        CurrentMonth,
+        EventForm
     }
 }
 </script>
